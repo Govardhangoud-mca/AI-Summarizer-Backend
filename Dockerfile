@@ -1,6 +1,7 @@
 # Stage 1: Build the Application
-# Use a Maven image with JDK 17 to build the project
-FROM maven:3.9.6-openjdk-17-slim AS build
+# Use a robust Maven image with JDK 17
+# CRITICAL FIX: Changed the image tag from the non-existent '3.9.6-openjdk-17-slim'
+FROM maven:3-openjdk-17 AS build 
 WORKDIR /app
 COPY . /app
 # Package the application into a JAR file, skipping tests
@@ -13,13 +14,11 @@ FROM openjdk:17-jdk-slim
 WORKDIR /app
 
 # Copy the built JAR file from the 'build' stage
-# The name of the JAR file comes from your pom.xml (e.g., summarizer-backend-0.0.1-SNAPSHOT.jar)
-# IMPORTANT: Check your target directory to confirm the exact JAR file name!
+# IMPORTANT: The JAR file name is automatically found if there is only one JAR in /target
 COPY --from=build /app/target/*.jar app.jar
 
 # Expose the default port for Spring Boot
 EXPOSE 8080
 
 # Define the command to run the application
-# This is the command Render will execute to start your service
 ENTRYPOINT ["java", "-jar", "app.jar"]
