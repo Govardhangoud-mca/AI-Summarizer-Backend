@@ -11,14 +11,14 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper; 
-import org.springframework.security.core.authority.mapping.SimpleAuthorityMapper; 
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.session.SessionFixationProtectionStrategy;
 
 import com.summarizer_backend.service.UserDetailsServiceImpl;
+import java.util.stream.Collectors; // Needed for the AuthoritiesMapper
 
 @Configuration
 @EnableWebSecurity
@@ -40,13 +40,20 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // CRITICAL FIX 1: Map roles without the default "ROLE_" prefix
+    // ✅ FIX: Replaced SimpleAuthorityMapper with modern Lambda/Stream implementation.
+    // This removes the "ROLE_" prefix and converts to uppercase for authority checks.
     @Bean
     public GrantedAuthoritiesMapper grantedAuthoritiesMapper() {
-        SimpleAuthorityMapper mapper = new SimpleAuthorityMapper();
-        mapper.setPrefix(""); // Disable the "ROLE_" prefix
-        mapper.setConvertToUpperCase(true); 
-        return mapper;
+        return (authorities) -> authorities.stream()
+            .map(authority -> {
+                String role = authority.getAuthority();
+                // Remove the "ROLE_" prefix if it exists, and convert to uppercase
+                if (role.startsWith("ROLE_")) {
+                    role = role.substring(5); // "ROLE_".length() == 5
+                }
+                return new SimpleGrantedAuthority(role.toUpperCase());
+            })
+            .collect(Collectors.toSet());
     }
 
     @Bean
@@ -54,37 +61,47 @@ public class SecurityConfig {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
-        authProvider.setAuthoritiesMapper(grantedAuthoritiesMapper()); // Apply the mapper
+        authProvider.setAuthoritiesMapper(grantedAuthoritiesMapper()); // Apply the new mapper
         return authProvider;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-             .cors(Customizer.withDefaults())
-             .csrf(AbstractHttpConfigurer::disable)
-             
-             .authenticationProvider(authenticationProvider())
-             
-             .sessionManagement(session -> session
-                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                 .sessionAuthenticationStrategy(new SessionFixationProtectionStrategy())
-             )
-             
-             .formLogin(Customizer.withDefaults()) 
-             
-             .authorizeHttpRequests(auth -> auth
-                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                 
-              
-                 .requestMatchers("/api/v1/auth/**").permitAll()
-                 
-                 .requestMatchers("/api/v1/text/**").hasAnyAuthority("USER", "ADMIN")
-                 .requestMatchers("/api/v1/admin/**").hasAuthority("ADMIN")
-                 
-                 .anyRequest().authenticated()
-             );
+            .cors(Customizer.withDefaults())
+            .csrf(AbstractHttpConfigurer::disable)
+            
+            // ✅ FIX: Disable the HTML form login page to prevent the redirect error (401 -> 302 -> /login)
+            .formLogin(AbstractHttpConfigurer::disable) 
+            
+            // ✅ FIX: Set session management to STATELESS for JWT-based APIs
+            // Also removed the deprecated SessionFixationProtectionStrategy which is for stateful sessions
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS) 
+            )
+            
+            .authenticationProvider(authenticationProvider())
+            
+            .authorizeHttpRequests(auth -> auth
+                // Allow preflight requests (OPTIONS) for CORS
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                
+                // Allow registration and login endpoints without authentication
+                .requestMatchers("/api/v1/auth/**").permitAll()
+                
+                // Protected endpoints: Summarization API requires USER or ADMIN
+                .requestMatchers("/api/v1/text/**").hasAnyAuthority("USER", "ADMIN")
+                
+                // Protected endpoints: Admin API requires ADMIN
+                .requestMatchers("/api/v1/admin/**").hasAuthority("ADMIN")
+                
+                // All other requests must be authenticated (require a valid JWT)
+                .anyRequest().authenticated()
+            );
 
+        // NOTE: If you have a JwtAuthenticationFilter, it needs to be added here 
+        // using .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+        
         return http.build();
     }
 }
