@@ -2,7 +2,6 @@ package com.summarizer_backend.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize; 
 import org.springframework.web.bind.annotation.*;
 
 import com.summarizer_backend.service.AdminService;
@@ -12,6 +11,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin")
+@CrossOrigin(origins = "https://ai-summarizer-frontend-ten.vercel.app", allowCredentials = "true")
 public class AdminController {
 
     @Autowired
