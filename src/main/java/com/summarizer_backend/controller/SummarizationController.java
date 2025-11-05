@@ -18,7 +18,7 @@ import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/v1/text")
-@CrossOrigin(origins = "https://ai-summarizer-frontend-rp6k.vercel.app", allowCredentials = "true")
+@CrossOrigin(origins = "https://ai-summarizer-frontend-vc29.vercel.app", allowCredentials = "true")
 public class SummarizationController {
 
     @Autowired

@@ -24,7 +24,7 @@ record MessageResponse(String message) {}
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@CrossOrigin(origins = "https://ai-summarizer-frontend-rp6k.vercel.app", allowCredentials = "true")
+@CrossOrigin(origins = "https://ai-summarizer-frontend-vc29.vercel.app", allowCredentials = "true")
 public class AuthController {
 
     @Autowired
