@@ -11,7 +11,8 @@ public class CorsConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/v1/**") // Apply CORS configuration to all API endpoints
             .allowedOrigins(
-                "https://ai-summarizer-frontend-ten.vercel.app"
+                "https://ai-summarizer-frontend-ten.vercel.app",
+                "https://ai-summarizer-frontend-rp6k.vercel.app/"
             		// Keep this for local frontend development (assuming Vite's default port) // 🎯 VERCEL DEPLOYED FRONTEND
             )
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
