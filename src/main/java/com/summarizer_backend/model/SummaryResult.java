@@ -14,7 +14,7 @@ public class SummaryResult {
 
     // 🔑 CRITICAL FIX: Link to the User who created this summary
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false) 
+    @JoinColumn(name = "user_id", nullable = true) 
     private User user; 
 
     @Column(columnDefinition = "TEXT") 
